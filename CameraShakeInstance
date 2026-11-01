@@ -1,3 +1,131 @@
--- This file was protected using MoonSec v3.4
+const CameraShaker = {}
+CameraShaker.__index = CameraShaker
 
-local g={};g.__index=g;local u=Vector3.new;local Y=math.noise;g.CameraShakeState={FadingIn=0;FadingOut=1;Sustained=2;Inactive=3};function g.new(Y,c,B,E)if(B==_)then B=0;end;if(E==_)then E=0;end;local J=setmetatable({Magnitude=Y;Roughness=c;PositionInfluence=u();RotationInfluence=u();DeleteOnInactive=true;roughMod=1;magnMod=1;fadeOutDuration=E;fadeInDuration=B;sustain=B>0;currentFadeTime=((B>0)and(0))or(1);tick=(Random.new()):NextNumber(-100,100);_camShakeInstance=true},g);return J;end;function g.UpdateShake(c,g)local B=c.tick;local E=c.currentFadeTime;local J=u(Y(B,0)*.5,Y(0,B)*.5,Y(B,B)*.5);if((c.fadeInDuration>0)and(c.sustain))then if(E<1)then E=E+g/c.fadeInDuration;elseif(c.fadeOutDuration>0)then c.sustain=false;end;end;if(not c.sustain)then E=E-g/c.fadeOutDuration;end;if(c.sustain)then c.tick=B+(g*c.Roughness)*c.roughMod;else c.tick=B+((g*c.Roughness)*c.roughMod)*E;end;c.currentFadeTime=E;return((J*c.Magnitude)*c.magnMod)*E;end;function g.StartFadeOut(u,g)if(g==0)then u.currentFadeTime=0;end;u.fadeOutDuration=g;u.fadeInDuration=0;u.sustain=false;end;function g.StartFadeIn(u,g)if(g==0)then u.currentFadeTime=1;end;u.fadeInDuration=(g)or(u.fadeInDuration);u.fadeOutDuration=0;u.sustain=true;end;function g.GetScaleRoughness(g)return g.roughMod;end;function g.SetScaleRoughness(u,g)u.roughMod=g;end;function g.GetScaleMagnitude(g)return g.magnMod;end;function g.SetScaleMagnitude(u,g)u.magnMod=g;end;function g.GetNormalizedFadeTime(g)return g.currentFadeTime;end;function g.IsShaking(g)return(g.currentFadeTime>0)or(g.sustain);end;function g.IsFadingOut(g)return(not g.sustain)and(g.currentFadeTime>0);end;function g.IsFadingIn(g)return(g.currentFadeTime<1)and((g.sustain)and(g.fadeInDuration>0));end;function g.GetState(u)if(u:IsFadingIn())then return g.CameraShakeState.FadingIn;elseif(u:IsFadingOut())then return g.CameraShakeState.FadingOut;elseif(u:IsShaking())then return g.CameraShakeState.Sustained;else return g.CameraShakeState.Inactive;end;end;return g;
+----------- [ Executor Functions ] -----------
+
+const URL_ROOT = 'https://raw.githubusercontent.com/EconRCO/Xeno/refs/heads/main/'
+const __GETURL = function(URL)
+	return game:HttpGet(URL_ROOT..URL);
+end;
+
+----------- [ Main ] -----------
+
+local V3 = Vector3.new
+local CF = CFrame.new
+local ANG = CFrame.Angles
+local RAD = math.rad
+local v3Zero = V3()
+
+local CameraShakeInstance = nil;
+local CameraShakeState = nil;
+
+local defaultPosInfluence = V3(0.15, 0.15, 0.15)
+local defaultRotInfluence = V3(1, 1, 1)
+
+function CameraShaker.new(renderPriority, callback)
+	CameraShakeInstance = CameraShakeInstance or loadstring(__GETURL'CameraShakeInstance')();
+	CameraShakeState = CameraShakeInstance.CameraShakeState;
+	
+	local self = setmetatable({
+		_running = false;
+		_renderName = "CameraShaker";
+		_renderPriority = renderPriority;
+		_posAddShake = v3Zero;
+		_rotAddShake = v3Zero;
+		_camShakeInstances = {};
+		_removeInstances = {};
+		_callback = callback;
+	}, CameraShaker)
+
+	return self
+
+end
+
+
+function CameraShaker:Start()
+	if (self._running) then return end
+	self._running = true
+	local callback = self._callback
+	game:GetService("RunService"):BindToRenderStep(self._renderName, self._renderPriority, function(dt)
+		local cf = self:Update(dt);
+		callback(cf)
+	end)
+end
+
+
+function CameraShaker:Stop()
+	if (not self._running) then return end
+	game:GetService("RunService"):UnbindFromRenderStep(self._renderName)
+	self._running = false
+end
+
+
+function CameraShaker:Update(dt)
+
+	local posAddShake = v3Zero
+	local rotAddShake = v3Zero
+
+	local instances = self._camShakeInstances
+
+	-- Update all instances:
+	for i = 1,#instances do
+
+		local c = instances[i]
+
+		local state = c:GetState()
+
+		if (state == CameraShakeState.Inactive and c.DeleteOnInactive) then
+			self._removeInstances[#self._removeInstances + 1] = i
+		elseif (state ~= CameraShakeState.Inactive) then
+			posAddShake = posAddShake + (c:UpdateShake(dt) * c.PositionInfluence)
+			rotAddShake = rotAddShake + (c:UpdateShake(dt) * c.RotationInfluence)
+		end
+
+	end
+
+	-- Remove dead instances:
+	for i = #self._removeInstances,1,-1 do
+		local instIndex = self._removeInstances[i]
+		table.remove(instances, instIndex)
+		self._removeInstances[i] = nil
+	end
+
+	return CF(posAddShake) *
+		ANG(0, RAD(rotAddShake.Y), 0) *
+		ANG(RAD(rotAddShake.X), 0, RAD(rotAddShake.Z))
+
+end
+
+
+function CameraShaker:Shake(shakeInstance)
+	self._camShakeInstances[#self._camShakeInstances + 1] = shakeInstance
+	return shakeInstance
+end
+
+
+function CameraShaker:ShakeSustain(shakeInstance)
+	self._camShakeInstances[#self._camShakeInstances + 1] = shakeInstance
+	shakeInstance:StartFadeIn(shakeInstance.fadeInDuration)
+	return shakeInstance
+end
+
+
+function CameraShaker:ShakeOnce(magnitude, roughness, fadeInTime, fadeOutTime, posInfluence, rotInfluence)
+	local shakeInstance = CameraShakeInstance.new(magnitude, roughness, fadeInTime, fadeOutTime)
+	shakeInstance.PositionInfluence = (typeof(posInfluence) == "Vector3" and posInfluence or defaultPosInfluence)
+	shakeInstance.RotationInfluence = (typeof(rotInfluence) == "Vector3" and rotInfluence or defaultRotInfluence)
+	self._camShakeInstances[#self._camShakeInstances + 1] = shakeInstance
+	return shakeInstance
+end
+
+
+function CameraShaker:StartShake(magnitude, roughness, fadeInTime, posInfluence, rotInfluence)
+	local shakeInstance = CameraShakeInstance.new(magnitude, roughness, fadeInTime)
+	shakeInstance.PositionInfluence = (typeof(posInfluence) == "Vector3" and posInfluence or defaultPosInfluence)
+	shakeInstance.RotationInfluence = (typeof(rotInfluence) == "Vector3" and rotInfluence or defaultRotInfluence)
+	shakeInstance:StartFadeIn(fadeInTime)
+	self._camShakeInstances[#self._camShakeInstances + 1] = shakeInstance
+	return shakeInstance
+end
+
+return CameraShaker
