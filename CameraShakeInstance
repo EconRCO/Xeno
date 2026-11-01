@@ -1,131 +1,150 @@
-const CameraShaker = {}
-CameraShaker.__index = CameraShaker
-
------------ [ Executor Functions ] -----------
-
-const URL_ROOT = 'https://raw.githubusercontent.com/EconRCO/Xeno/refs/heads/main/'
-const __GETURL = function(URL)
-	return game:HttpGet(URL_ROOT..URL);
-end;
-
------------ [ Main ] -----------
+local CameraShakeInstance = {}
+CameraShakeInstance.__index = CameraShakeInstance
 
 local V3 = Vector3.new
-local CF = CFrame.new
-local ANG = CFrame.Angles
-local RAD = math.rad
-local v3Zero = V3()
+local NOISE = math.noise
 
-local CameraShakeInstance = nil;
-local CameraShakeState = nil;
 
-local defaultPosInfluence = V3(0.15, 0.15, 0.15)
-local defaultRotInfluence = V3(1, 1, 1)
+CameraShakeInstance.CameraShakeState = {
+	FadingIn = 0;
+	FadingOut = 1;
+	Sustained = 2;
+	Inactive = 3;
+}
 
-function CameraShaker.new(renderPriority, callback)
-	CameraShakeInstance = CameraShakeInstance or loadstring(__GETURL'CameraShakeInstance')();
-	CameraShakeState = CameraShakeInstance.CameraShakeState;
-	
+
+function CameraShakeInstance.new(magnitude, roughness, fadeInTime, fadeOutTime)
+	if (fadeInTime == nil) then fadeInTime = 0 end
+	if (fadeOutTime == nil) then fadeOutTime = 0 end
+
 	local self = setmetatable({
-		_running = false;
-		_renderName = "CameraShaker";
-		_renderPriority = renderPriority;
-		_posAddShake = v3Zero;
-		_rotAddShake = v3Zero;
-		_camShakeInstances = {};
-		_removeInstances = {};
-		_callback = callback;
-	}, CameraShaker)
+		Magnitude = magnitude;
+		Roughness = roughness;
+		PositionInfluence = V3();
+		RotationInfluence = V3();
+		DeleteOnInactive = true;
+		roughMod = 1;
+		magnMod = 1;
+		fadeOutDuration = fadeOutTime;
+		fadeInDuration = fadeInTime;
+		sustain = (fadeInTime > 0);
+		currentFadeTime = (fadeInTime > 0 and 0 or 1);
+		tick = Random.new():NextNumber(-100, 100);
+		_camShakeInstance = true;
+	}, CameraShakeInstance)
 
 	return self
 
 end
 
 
-function CameraShaker:Start()
-	if (self._running) then return end
-	self._running = true
-	local callback = self._callback
-	game:GetService("RunService"):BindToRenderStep(self._renderName, self._renderPriority, function(dt)
-		local cf = self:Update(dt);
-		callback(cf)
-	end)
-end
+function CameraShakeInstance:UpdateShake(dt)
 
+	local _tick = self.tick
+	local currentFadeTime = self.currentFadeTime
 
-function CameraShaker:Stop()
-	if (not self._running) then return end
-	game:GetService("RunService"):UnbindFromRenderStep(self._renderName)
-	self._running = false
-end
+	local offset = V3(
+		NOISE(_tick, 0) * 0.5,
+		NOISE(0, _tick) * 0.5,
+		NOISE(_tick, _tick) * 0.5
+	)
 
-
-function CameraShaker:Update(dt)
-
-	local posAddShake = v3Zero
-	local rotAddShake = v3Zero
-
-	local instances = self._camShakeInstances
-
-	-- Update all instances:
-	for i = 1,#instances do
-
-		local c = instances[i]
-
-		local state = c:GetState()
-
-		if (state == CameraShakeState.Inactive and c.DeleteOnInactive) then
-			self._removeInstances[#self._removeInstances + 1] = i
-		elseif (state ~= CameraShakeState.Inactive) then
-			posAddShake = posAddShake + (c:UpdateShake(dt) * c.PositionInfluence)
-			rotAddShake = rotAddShake + (c:UpdateShake(dt) * c.RotationInfluence)
+	if (self.fadeInDuration > 0 and self.sustain) then
+		if (currentFadeTime < 1) then
+			currentFadeTime = currentFadeTime + (dt / self.fadeInDuration)
+		elseif (self.fadeOutDuration > 0) then
+			self.sustain = false
 		end
-
 	end
 
-	-- Remove dead instances:
-	for i = #self._removeInstances,1,-1 do
-		local instIndex = self._removeInstances[i]
-		table.remove(instances, instIndex)
-		self._removeInstances[i] = nil
+	if (not self.sustain) then
+		currentFadeTime = currentFadeTime - (dt / self.fadeOutDuration)
 	end
 
-	return CF(posAddShake) *
-		ANG(0, RAD(rotAddShake.Y), 0) *
-		ANG(RAD(rotAddShake.X), 0, RAD(rotAddShake.Z))
+	if (self.sustain) then
+		self.tick = _tick + (dt * self.Roughness * self.roughMod)
+	else
+		self.tick = _tick + (dt * self.Roughness * self.roughMod * currentFadeTime)
+	end
+
+	self.currentFadeTime = currentFadeTime
+
+	return offset * self.Magnitude * self.magnMod * currentFadeTime
 
 end
 
 
-function CameraShaker:Shake(shakeInstance)
-	self._camShakeInstances[#self._camShakeInstances + 1] = shakeInstance
-	return shakeInstance
+function CameraShakeInstance:StartFadeOut(fadeOutTime)
+	if (fadeOutTime == 0) then
+		self.currentFadeTime = 0
+	end
+	self.fadeOutDuration = fadeOutTime
+	self.fadeInDuration = 0
+	self.sustain = false
 end
 
 
-function CameraShaker:ShakeSustain(shakeInstance)
-	self._camShakeInstances[#self._camShakeInstances + 1] = shakeInstance
-	shakeInstance:StartFadeIn(shakeInstance.fadeInDuration)
-	return shakeInstance
+function CameraShakeInstance:StartFadeIn(fadeInTime)
+	if (fadeInTime == 0) then
+		self.currentFadeTime = 1
+	end
+	self.fadeInDuration = fadeInTime or self.fadeInDuration
+	self.fadeOutDuration = 0
+	self.sustain = true
 end
 
 
-function CameraShaker:ShakeOnce(magnitude, roughness, fadeInTime, fadeOutTime, posInfluence, rotInfluence)
-	local shakeInstance = CameraShakeInstance.new(magnitude, roughness, fadeInTime, fadeOutTime)
-	shakeInstance.PositionInfluence = (typeof(posInfluence) == "Vector3" and posInfluence or defaultPosInfluence)
-	shakeInstance.RotationInfluence = (typeof(rotInfluence) == "Vector3" and rotInfluence or defaultRotInfluence)
-	self._camShakeInstances[#self._camShakeInstances + 1] = shakeInstance
-	return shakeInstance
+function CameraShakeInstance:GetScaleRoughness()
+	return self.roughMod
 end
 
 
-function CameraShaker:StartShake(magnitude, roughness, fadeInTime, posInfluence, rotInfluence)
-	local shakeInstance = CameraShakeInstance.new(magnitude, roughness, fadeInTime)
-	shakeInstance.PositionInfluence = (typeof(posInfluence) == "Vector3" and posInfluence or defaultPosInfluence)
-	shakeInstance.RotationInfluence = (typeof(rotInfluence) == "Vector3" and rotInfluence or defaultRotInfluence)
-	shakeInstance:StartFadeIn(fadeInTime)
-	self._camShakeInstances[#self._camShakeInstances + 1] = shakeInstance
-	return shakeInstance
+function CameraShakeInstance:SetScaleRoughness(v)
+	self.roughMod = v
 end
 
-return CameraShaker
+
+function CameraShakeInstance:GetScaleMagnitude()
+	return self.magnMod
+end
+
+
+function CameraShakeInstance:SetScaleMagnitude(v)
+	self.magnMod = v
+end
+
+
+function CameraShakeInstance:GetNormalizedFadeTime()
+	return self.currentFadeTime
+end
+
+
+function CameraShakeInstance:IsShaking()
+	return (self.currentFadeTime > 0 or self.sustain)
+end
+
+
+function CameraShakeInstance:IsFadingOut()
+	return ((not self.sustain) and self.currentFadeTime > 0)
+end
+
+
+function CameraShakeInstance:IsFadingIn()
+	return (self.currentFadeTime < 1 and self.sustain and self.fadeInDuration > 0)
+end
+
+
+function CameraShakeInstance:GetState()
+	if (self:IsFadingIn()) then
+		return CameraShakeInstance.CameraShakeState.FadingIn
+	elseif (self:IsFadingOut()) then
+		return CameraShakeInstance.CameraShakeState.FadingOut
+	elseif (self:IsShaking()) then
+		return CameraShakeInstance.CameraShakeState.Sustained
+	else
+		return CameraShakeInstance.CameraShakeState.Inactive
+	end
+end
+
+
+return CameraShakeInstance
