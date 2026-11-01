@@ -1,3 +1,223 @@
--- This file was protected using MoonSec v3.4
+local getgenv = getgenv;
 
-local g=getgenv;local e={};do local S=((g()).all)or({});local w=((g()).dis)or({});(g()).dis=w;(g()).all=S;function e.set(k,e,S,u)local G=(g()).all;if(not w[e])then w[e]=e.Destroying:Once(function()G[e]=_;w[e]=_;end);end;G[e]=(G[e])or({});G[e][S]=u;end;function e.get(w,e,S)local u=(g()).all;return(u[e])and(u[e][S]);end;end;return{init=function(S)local w={};local u=game:GetService(`Players`);local k=game:GetService(`RunService`);local G=u.LocalPlayer;local m=G.PlayerScripts;local z=G.PlayerGui.MainGui.MainFrame;local J=z.FighterInterfaces;local L=(g()).ECON_VARS;local U=L.TIMES_EXECUTED>1;w.__handleFighterInterface=function(e)if(e.Name==G.Name)then pcall(function()local w={};local u=e.BottomRight.Container.Hotbar.Container;w.handleSlot=function(e)local w=(g()).toskin[e.Name];if(((g()).enabled_skin)and((w)and(w~=`Dont Change`)))then local g=e:FindFirstChild(`Icon`);if(g)then g.ResampleMode=Enum.ResamplerMode[((w:find(`Pixel`))and(`Pixelated`))or(`Default`)];g.Image=S.SKIN_MOD.viewmodels[w].image;end;end;end;u.ChildAdded:Connect(w.handleSlot)for g,e in pairs(u:GetChildren())do w.handleSlot(e)end;end)end;end;w.createSparklesFrame=function(g)local e={};local S=.75;local w=tick();local u={};function e.Update(e)if(tick()-w>S)then w=tick();local e=.375+(.25*math.random())*3;local S=m.UserInterface.PrimeSparkle:Clone();S.Size=UDim2.new(e,0,e,0);S.Position=UDim2.new(.5,(math.random()-.5)*g.AbsoluteSize.X,.5,(math.random()-.5)*g.AbsoluteSize.Y);S.Rotation=math.random()*360;S.Parent=g;S:TweenSize(UDim2.new(),`In`,`Back`,2,true)table.insert(u,{object=S;spawnTick=tick()})end;for g,e in pairs(u)do if(tick()-e.spawnTick>2)then e.object:Destroy()table.remove(u,g)else e.object.Rotation+=1.8;end;end;end;function e.Destroy(g)for g,e in pairs(u)do e.object:Destroy()end;e=_;end;return e;end;if(not U)then local function w(w)task.spawn(function()local u=((w.Name==`PickWeapons`)and(1))or(((w.Name==`PickWeaponsList`)and(2))or(0));if((u>0)and(not e:get(w,`e`)))then local k=w:WaitForChild(`ChosenWeapons`);local G=((u==1)and(w:WaitForChild(`List`)))or((w:WaitForChild(`ListContainer`)).List);e:set(w,`e`,true)local m={};if((k)and(G))then G=G.Container;local function e(e)task.spawn(function()local w=(e.Name:find(`WeaponSlot`))and(e:WaitForChild(`Button`));if((w)and((w:FindFirstChild(`Icon`))and(w.Icon:FindFirstChild(`Picture`))))then w=w.Icon.Picture;w.Name=`OPic`;local function e()local e=S.SKIN_MOD.its[w.Image];local u=(S.SKIN_INFO.skinToOg[e])or(e);local k=(g()).toskin[u];if(((g()).enabled_skin)and((k)and(k~=`Dont Change`)))then w.Image=S.SKIN_MOD.viewmodels[k].image;end;end;e()table.insert(m,(w:GetPropertyChangedSignal(`Image`)):Connect(e))end;end)end;for g,S in pairs(G:GetChildren())do e(S)end;local w=G.ChildAdded:Connect(e);table.insert(m,w)local function u(e)task.spawn(function()if(e.Name:find(`ChosenSlot`))then local w=e.Button.Picture;local function u()local e=S.SKIN_MOD.its[w.Image];local u=(S.SKIN_INFO.skinToOg[e])or(e);local k=(g()).toskin[u];if(((g()).enabled_skin)and((k)and(k~=`Dont Change`)))then w.Image=S.SKIN_MOD.viewmodels[k].image;end;end;u()table.insert(m,(w:GetPropertyChangedSignal(`Image`)):Connect(u))end;end)end;for g,e in pairs(k:GetChildren())do u(e)end;table.insert(m,k.ChildAdded:Connect(u))end;end;end)end;local u=z.Pages;if(u:FindFirstChild(`PickWeapons`))then w(u.PickWeapons)end;u.ChildAdded:Connect(w)end;for g,e in pairs(J:GetChildren())do w.__handleFighterInterface(e)end;return w;end};
+--
+
+local attribute = {};
+do
+	local all = getgenv().all or {};
+	local dis = getgenv().dis or {};
+	getgenv().dis = dis;
+	getgenv().all = all;
+
+	function attribute:set(x,v,a)
+		local all = getgenv().all;
+		if not dis[x] then
+			dis[x] = x.Destroying:Once(function()
+				all[x] = nil;
+				dis[x] = nil;
+			end);
+		end;
+
+		all[x] = all[x] or {};
+		all[x][v] = a;
+	end;
+	function attribute:get(x,v)
+		local all = getgenv().all;
+		return all[x] and all[x][v];
+	end;
+end
+
+--
+
+return {
+	init = function(UTILS)
+		local __RET = {}
+
+		-- // Services
+
+		local players = game:GetService('Players')
+		local run = game:GetService('RunService')
+
+		-- // Vars
+
+		local plr = players.LocalPlayer
+		local scripts = plr.PlayerScripts
+
+		local mainUI = plr.PlayerGui.MainGui.MainFrame
+		local fighterInterfaces = mainUI.FighterInterfaces
+
+		local ECON_VARS = getgenv().ECON_VARS
+
+		local is = ECON_VARS.TIMES_EXECUTED > 1
+
+		-- // Main
+
+		__RET.__handleFighterInterface = function(ui)
+			if ui.Name == plr.Name then
+				pcall(function()
+					local funcs = {}
+
+					local items = ui.BottomRight.Container.Hotbar.Container
+
+					funcs.handleSlot = function(v)
+						local _selected = getgenv().toskin[v.Name]
+						if getgenv().enabled_skin and _selected and _selected ~= 'Dont Change' then
+							local icon = v:FindFirstChild'Icon'
+							if icon then
+								icon.ResampleMode = Enum.ResamplerMode[_selected:find('Pixel') and 'Pixelated' or 'Default'] 
+								icon.Image = UTILS.SKIN_MOD.viewmodels[_selected].image
+							end;
+						end
+					end
+
+					-- //
+
+					items.ChildAdded:Connect(funcs.handleSlot)
+					for _, v in pairs(items:GetChildren()) do
+						funcs.handleSlot(v)
+					end
+				end);
+			end
+		end
+
+		__RET.createSparklesFrame = function(f)
+			local __ret = {}
+
+			local sparkleCooldown = .75
+			local lastSparkle = tick()
+			local sparkles = {}
+
+			function __ret:Update()
+				if tick()-lastSparkle > sparkleCooldown then
+					lastSparkle = tick()
+
+					local size = 0.375 + 0.25 * math.random() * 3
+					local clone = scripts.UserInterface.PrimeSparkle:Clone()
+					clone.Size = UDim2.new(size, 0, size, 0)
+
+					clone.Position = UDim2.new(0.5, (math.random() - 0.5) * f.AbsoluteSize.X, 0.5, (math.random() - 0.5) * f.AbsoluteSize.Y)
+					clone.Rotation = math.random() * 360
+					clone.Parent = f
+					clone:TweenSize(UDim2.new(), "In", "Back", 2, true)
+
+					table.insert(sparkles,{
+						object = clone;
+						spawnTick = tick();
+					})
+				end
+
+				for i, v in pairs(sparkles) do
+					if tick()-v.spawnTick > 2 then
+						v.object:Destroy()
+						table.remove(sparkles,i)
+					else
+						v.object.Rotation += .01*180
+					end
+				end
+			end
+
+			function __ret:Destroy()
+				for _, v in pairs(sparkles) do
+					v.object:Destroy()
+				end
+
+				__ret = nil
+			end
+
+			return __ret
+		end
+
+		if not is then
+			local function checkfor(v)
+				task.spawn(function()
+					local typ = v.Name == 'PickWeapons' and 1 or v.Name == 'PickWeaponsList' and 2 or 0
+					if typ>0 and not attribute:get(v,'e') then
+						local chosen = v:WaitForChild('ChosenWeapons')
+						local list = typ == 1 and v:WaitForChild('List') or v:WaitForChild('ListContainer').List
+						
+						attribute:set(v,'e',true);
+
+						local cons = {}
+
+						if chosen and list then
+							list = list.Container
+
+							-- // LIST
+
+							local function handle(v)
+								task.spawn(function()
+									local b = v.Name:find('WeaponSlot') and v:WaitForChild('Button')
+									if b and b:FindFirstChild('Icon') and b.Icon:FindFirstChild('Picture') then
+										b = b.Icon.Picture
+										b.Name = 'OPic'
+
+										local function calc()
+											local ts = UTILS.SKIN_MOD.its[b.Image]
+											local tog = UTILS.SKIN_INFO.skinToOg[ts] or ts
+											local tocur = getgenv().toskin[tog]
+											if getgenv().enabled_skin and tocur and tocur ~= 'Dont Change' then
+												b.Image = UTILS.SKIN_MOD.viewmodels[tocur].image
+											end
+										end
+
+										calc()
+										table.insert(cons, b:GetPropertyChangedSignal('Image'):Connect(calc))
+									end
+								end)
+							end
+
+							for _, v in pairs(list:GetChildren()) do
+								handle(v)
+							end
+
+							local con = list.ChildAdded:Connect(handle)
+							table.insert(cons, con)
+
+							-- // MAIN SELECTION
+
+							local function handle2(v)
+								task.spawn(function()
+									if v.Name:find('ChosenSlot') then
+										local b = v.Button.Picture
+										local function calc()
+											local ts = UTILS.SKIN_MOD.its[b.Image]
+											local tog = UTILS.SKIN_INFO.skinToOg[ts] or ts
+											local tocur = getgenv().toskin[tog]
+											if getgenv().enabled_skin and tocur and tocur ~= 'Dont Change' then
+												b.Image = UTILS.SKIN_MOD.viewmodels[tocur].image
+											end
+										end
+
+										calc()
+										table.insert(cons, b:GetPropertyChangedSignal('Image'):Connect(calc))
+									end
+								end)
+							end
+
+							for _, v in pairs(chosen:GetChildren()) do
+								handle2(v)
+							end
+
+							table.insert(cons, chosen.ChildAdded:Connect(handle2))
+						end
+					end
+				end)
+			end
+
+			local pages = mainUI.Pages
+			if pages:FindFirstChild('PickWeapons') then
+				checkfor(pages.PickWeapons)
+			end
+
+			pages.ChildAdded:Connect(checkfor)
+		end
+
+		for _, v in pairs(fighterInterfaces:GetChildren()) do
+			__RET.__handleFighterInterface(v)
+		end
+
+		-- //
+
+		return __RET
+	end,
+}
