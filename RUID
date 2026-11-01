@@ -18,7 +18,7 @@ local isfile = isfile;
 return {
 	init = function(UTILS)
 		local __RET = {}
-		
+
 		-- // Services
 
 		local players = game:GetService('Players')
@@ -40,14 +40,14 @@ return {
 
 		local dn = (plr.DisplayName or plr.Name)..(plr.HasVerifiedBadge and ' '..utf8.char(0xE000) or '')
 		local usn = plr.Name
-		
+
 		-- // Cons
-		
+
 		local prcons = {}
 		local pacons = {}
 		local pa2cons = {}
 		local sidecons = {}
-		
+
 		-- // Main
 
 		local function getIcon()
@@ -626,9 +626,9 @@ return {
 
 			table.insert(initConnections, pages.ChildAdded:Connect(h))
 		end)
-		
+
 		-- //
-		
+
 		return __RET
 	end,
 }
