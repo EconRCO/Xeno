@@ -1,3 +1,150 @@
--- This file was protected using MoonSec v3.4
+local CameraShakeInstance = {}
+CameraShakeInstance.__index = CameraShakeInstance
 
-local J={};J.__index=J;local Q=`https://raw.githubusercontent.com/EconRCO/Xeno/refs/heads/main/`;local n=function(J)return game:HttpGet(Q..J);end;local k=Vector3.new;local f=CFrame.new;local i=CFrame.Angles;local W=math.rad;local I=k();local F=_;local H=_;local P=k(.15,.15,.15);local o=k(1,1,1);function J.new(Q,k)F=(F)or((loadstring(n(`CameraShakeInstance`)))());H=F.CameraShakeState;local f=setmetatable({_running=false;_renderName=`CameraShaker`;_renderPriority=Q;_posAddShake=I;_rotAddShake=I;_camShakeInstances={};_removeInstances={};_callback=k},J);return f;end;function J.Start(J)if(J._running)then return;end;J._running=true;local Q=J._callback;(game:GetService(`RunService`)):BindToRenderStep(J._renderName,J._renderPriority,function(n)local k=J:Update(n);Q(k)end)end;function J.Stop(J)if(not J._running)then return;end;(game:GetService(`RunService`)):UnbindFromRenderStep(J._renderName)J._running=false;end;function J.Update(Q,J)local n=I;local k=I;local F=Q._camShakeInstances;for f=1,#F,1 do local i=F[f];local W=i:GetState();if((W==H.Inactive)and(i.DeleteOnInactive))then Q._removeInstances[#Q._removeInstances+1]=f;elseif(W~=H.Inactive)then n=n+i:UpdateShake(J)*i.PositionInfluence;k=k+i:UpdateShake(J)*i.RotationInfluence;end;end;for J=#Q._removeInstances,1,-1 do local n=Q._removeInstances[J];table.remove(F,n)Q._removeInstances[J]=_;end;return(f(n)*i(0,W(k.Y),0))*i(W(k.X),0,W(k.Z));end;function J.Shake(Q,J)Q._camShakeInstances[#Q._camShakeInstances+1]=J;return J;end;function J.ShakeSustain(Q,J)Q._camShakeInstances[#Q._camShakeInstances+1]=J;J:StartFadeIn(J.fadeInDuration)return J;end;function J.ShakeOnce(W,J,Q,n,k,f,i)local I=F.new(J,Q,n,k);I.PositionInfluence=((typeof(f)==`Vector3`)and(f))or(P);I.RotationInfluence=((typeof(i)==`Vector3`)and(i))or(o);W._camShakeInstances[#W._camShakeInstances+1]=I;return I;end;function J.StartShake(i,J,Q,n,k,f)local W=F.new(J,Q,n);W.PositionInfluence=((typeof(k)==`Vector3`)and(k))or(P);W.RotationInfluence=((typeof(f)==`Vector3`)and(f))or(o);W:StartFadeIn(n)i._camShakeInstances[#i._camShakeInstances+1]=W;return W;end;return J;
+local V3 = Vector3.new
+local NOISE = math.noise
+
+
+CameraShakeInstance.CameraShakeState = {
+	FadingIn = 0;
+	FadingOut = 1;
+	Sustained = 2;
+	Inactive = 3;
+}
+
+
+function CameraShakeInstance.new(magnitude, roughness, fadeInTime, fadeOutTime)
+	if (fadeInTime == nil) then fadeInTime = 0 end
+	if (fadeOutTime == nil) then fadeOutTime = 0 end
+	
+	local self = setmetatable({
+		Magnitude = magnitude;
+		Roughness = roughness;
+		PositionInfluence = V3();
+		RotationInfluence = V3();
+		DeleteOnInactive = true;
+		roughMod = 1;
+		magnMod = 1;
+		fadeOutDuration = fadeOutTime;
+		fadeInDuration = fadeInTime;
+		sustain = (fadeInTime > 0);
+		currentFadeTime = (fadeInTime > 0 and 0 or 1);
+		tick = Random.new():NextNumber(-100, 100);
+		_camShakeInstance = true;
+	}, CameraShakeInstance)
+
+	return self
+
+end
+
+
+function CameraShakeInstance:UpdateShake(dt)
+
+	local _tick = self.tick
+	local currentFadeTime = self.currentFadeTime
+
+	local offset = V3(
+		NOISE(_tick, 0) * 0.5,
+		NOISE(0, _tick) * 0.5,
+		NOISE(_tick, _tick) * 0.5
+	)
+
+	if (self.fadeInDuration > 0 and self.sustain) then
+		if (currentFadeTime < 1) then
+			currentFadeTime = currentFadeTime + (dt / self.fadeInDuration)
+		elseif (self.fadeOutDuration > 0) then
+			self.sustain = false
+		end
+	end
+
+	if (not self.sustain) then
+		currentFadeTime = currentFadeTime - (dt / self.fadeOutDuration)
+	end
+
+	if (self.sustain) then
+		self.tick = _tick + (dt * self.Roughness * self.roughMod)
+	else
+		self.tick = _tick + (dt * self.Roughness * self.roughMod * currentFadeTime)
+	end
+
+	self.currentFadeTime = currentFadeTime
+
+	return offset * self.Magnitude * self.magnMod * currentFadeTime
+
+end
+
+
+function CameraShakeInstance:StartFadeOut(fadeOutTime)
+	if (fadeOutTime == 0) then
+		self.currentFadeTime = 0
+	end
+	self.fadeOutDuration = fadeOutTime
+	self.fadeInDuration = 0
+	self.sustain = false
+end
+
+
+function CameraShakeInstance:StartFadeIn(fadeInTime)
+	if (fadeInTime == 0) then
+		self.currentFadeTime = 1
+	end
+	self.fadeInDuration = fadeInTime or self.fadeInDuration
+	self.fadeOutDuration = 0
+	self.sustain = true
+end
+
+
+function CameraShakeInstance:GetScaleRoughness()
+	return self.roughMod
+end
+
+
+function CameraShakeInstance:SetScaleRoughness(v)
+	self.roughMod = v
+end
+
+
+function CameraShakeInstance:GetScaleMagnitude()
+	return self.magnMod
+end
+
+
+function CameraShakeInstance:SetScaleMagnitude(v)
+	self.magnMod = v
+end
+
+
+function CameraShakeInstance:GetNormalizedFadeTime()
+	return self.currentFadeTime
+end
+
+
+function CameraShakeInstance:IsShaking()
+	return (self.currentFadeTime > 0 or self.sustain)
+end
+
+
+function CameraShakeInstance:IsFadingOut()
+	return ((not self.sustain) and self.currentFadeTime > 0)
+end
+
+
+function CameraShakeInstance:IsFadingIn()
+	return (self.currentFadeTime < 1 and self.sustain and self.fadeInDuration > 0)
+end
+
+
+function CameraShakeInstance:GetState()
+	if (self:IsFadingIn()) then
+		return CameraShakeInstance.CameraShakeState.FadingIn
+	elseif (self:IsFadingOut()) then
+		return CameraShakeInstance.CameraShakeState.FadingOut
+	elseif (self:IsShaking()) then
+		return CameraShakeInstance.CameraShakeState.Sustained
+	else
+		return CameraShakeInstance.CameraShakeState.Inactive
+	end
+end
+
+
+return CameraShakeInstance
