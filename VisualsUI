@@ -79,7 +79,7 @@ return {
 				end);
 			end
 		end
-
+		
 		__RET.createSparklesFrame = function(f)
 			local __ret = {}
 
