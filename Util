@@ -1,3 +1,161 @@
--- This file was protected using MoonSec v3.4
+const getgenv = getgenv;
 
-local V=getgenv;local g={};local Y=((V()).all)or({});local q=((V()).dis)or({});(V()).dis=q;(V()).all=Y;function g.set(U,g,Y,R)local z=(V()).all;if(not q[g])then q[g]=g.Destroying:Once(function()z[g]=_;q[g]=_;end);end;z[g]=(z[g])or({});z[g][Y]=R;end;function g.get(q,g,Y)local R=(V()).all;return(R[g])and(R[g][Y]);end;local R={EnergyPistolsShootSoundCooldown=0};local U=game:GetService(`SoundService`);function debris(V,g)task.delay(g,function()if(V)then V:Destroy()end;end)end;local z=(V()).animLib;local t=(game:GetService(`Players`)).LocalPlayer;local d=t.PlayerScripts;local D=d.Modules.ClientReplicatedClasses.ClientFighter.ClientItem;(V()).ffunc=function(g,Y,q)if((Y)and(not table.find((V()).silenced,Y)))then local g=false;local R=Y.Stopped:Once(function()g=true;end);local U=wait(q);if(R)then R:Disconnect()end;return(Y)and((Y.IsPlaying)and((not g)and((not table.find((V()).silenced,Y))and(U))));end;end;(V()).durr=.92;(V()).silenced=((V()).silenced)or({});(V()).si=((V()).si)or({});(V()).soundToWeapon=((V()).soundToWeapon)or({});function R._AnimationWait(R,g,Y,q)return(V()).ffunc(g,Y,q);end;function R.CreateSound(i,Y,q,R,z,t,d,I,l,E,b,X)local o=((typeof(Y)==`number`)and(`rbxassetid://`..Y))or(Y);local A=Instance.new(`Sound`);A.SoundId=o;A.Volume=(R)or(1);A.PlaybackSpeed=(z)or(1);A.RollOffMinDistance=((l)and((typeof(l)==`number`)and(l)))or(50);A.RollOffMaxDistance=(E)or(400);A.RollOffMode=Enum.RollOffMode.Inverse;A.SoundGroup=U[(b)or(`Master`)];if(X)then for V,g in pairs(X)do A[V]=g;end;end;(V()).soundToWeapon[A]=q;g:set(A,`io`,true)A.Parent=D;A:Play()A.Ended:Once(function()A:Destroy()end)return A;end;function R.CreateSpectatorSound(i,Y,q,R,z,t,d,I,l,E,b,X)local o=((typeof(Y)==`number`)and(`rbxassetid://`..Y))or(Y);local A=Instance.new(`Sound`);A.SoundId=o;A.Volume=(R)or(1);A.PlaybackSpeed=(z)or(1);A.RollOffMinDistance=((l)and((typeof(l)==`number`)and(l)))or(50);A.RollOffMaxDistance=(E)or(400);A.RollOffMode=Enum.RollOffMode.Inverse;A.SoundGroup=U[(b)or(`Master`)];if(X)then for V,g in pairs(X)do A[V]=g;end;end;(V()).soundToWeapon[A]=q;g:set(A,`io`,true)A.Parent=D;A:Play()A.Ended:Once(function()A:Destroy()end)return A;end;local I=table.freeze({c=`CreateSound`;s=`CreateSpectatorSound`;w=`_AnimationWait`});return setmetatable(R,{__index=function(V,g)return(rawget(V,g))or(rawget(V,I[g]));end});
+--
+
+local attribute = {};
+local all = getgenv().all or {};
+local dis = getgenv().dis or {};
+getgenv().dis = dis;
+getgenv().all = all;
+
+function attribute:set(x,v,a)
+	local all = getgenv().all;
+	if not dis[x] then
+		dis[x] = x.Destroying:Once(function()
+			all[x] = nil;
+			dis[x] = nil;
+		end);
+	end;
+
+	all[x] = all[x] or {};
+	all[x][v] = a;
+end;
+function attribute:get(x,v)
+	local all = getgenv().all;
+	return all[x] and all[x][v];
+end;
+
+--
+
+local ut = {
+	EnergyPistolsShootSoundCooldown = 0;
+}
+
+-- // Services
+
+local SoundService_upvr = game:GetService("SoundService")
+
+-- // Main
+
+function debris(thing, dur)
+	task.delay(dur, function()
+		if thing then
+			thing:Destroy()
+		end
+	end)
+end
+
+local animlib = getgenv().animLib
+
+local plr = game:GetService('Players').LocalPlayer
+local scripts = plr.PlayerScripts
+local weaponSounds = scripts.Modules.ClientReplicatedClasses.ClientFighter.ClientItem
+
+-- // Globals
+
+getgenv().ffunc = function(name, anim, dur)
+	if anim and not table.find(getgenv().silenced, anim) then
+		local stopped = false
+
+		local z = anim.Stopped:Once(function()
+			stopped = true
+		end)
+
+		local waitResult = wait(dur)
+		if z then z:Disconnect() end
+		return anim and anim.IsPlaying and not stopped and not table.find(getgenv().silenced, anim) and waitResult
+	end
+end
+
+getgenv().durr = .92
+getgenv().silenced = getgenv().silenced or {}
+getgenv().si = getgenv().si or {}
+getgenv().soundToWeapon = getgenv().soundToWeapon or {}
+
+-- // Functions
+
+function ut:_AnimationWait(name, anim, dur)
+	return getgenv().ffunc(name, anim, dur)
+end
+
+function ut:CreateSound(id,model, vol, speed, pos, play, dur, mind, maxd, soundserv, extra)
+	const id = typeof(id)=='number' and 'rbxassetid://'..id or id;
+	
+	--
+	
+	local s = Instance.new("Sound")
+	s.SoundId = id;
+	s.Volume = vol or 1
+	s.PlaybackSpeed = speed or 1
+	s.RollOffMinDistance = mind and typeof(mind) == 'number' and mind or 50
+	s.RollOffMaxDistance = maxd or 400
+	s.RollOffMode = Enum.RollOffMode.Inverse
+	s.SoundGroup = SoundService_upvr[soundserv or 'Master']
+	
+	if extra then
+		for i, v in pairs(extra) do
+			s[i] = v
+		end
+	end
+
+	getgenv().soundToWeapon[s] = model
+
+	attribute:set(s,'io',true);
+	
+	s.Parent = weaponSounds;
+	s:Play();
+
+	s.Ended:Once(function()
+		s:Destroy()
+	end);
+
+	return s
+end
+
+function ut:CreateSpectatorSound(id,model, vol, speed, pos, play, dur, mind, maxd, soundserv, extra)
+	const id = typeof(id)=='number' and 'rbxassetid://'..id or id;
+
+	--
+	
+	local s = Instance.new("Sound")
+	s.SoundId = id;
+	s.Volume = vol or 1
+	s.PlaybackSpeed = speed or 1
+	s.RollOffMinDistance = mind and typeof(mind) == 'number' and mind or 50
+	s.RollOffMaxDistance = maxd or 400
+	s.RollOffMode = Enum.RollOffMode.Inverse
+	s.SoundGroup = SoundService_upvr[soundserv or 'Master']
+
+	if extra then
+		for i, v in pairs(extra) do
+			s[i] = v
+		end
+	end
+
+	getgenv().soundToWeapon[s] = model
+
+	attribute:set(s,'io',true);
+	s.Parent = weaponSounds
+
+	s:Play()
+
+	s.Ended:Once(function()
+		s:Destroy()
+	end)
+	
+	return s
+end
+
+--
+
+const r = table.freeze {
+	c = 'CreateSound';
+	s = 'CreateSpectatorSound';
+	w = '_AnimationWait';
+};
+
+return setmetatable(ut,{
+	__index = function(a,b)
+		return rawget(a,b) or rawget(a,r[b]);
+	end;
+})
