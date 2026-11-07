@@ -60,12 +60,8 @@ return {
 					local items = ui.BottomRight.Container.Hotbar.Container
 
 					funcs.handleSlot = function(v)
-						local s = env.selskin and env.selskin[v.Name] or env.toskin[v.Name];
-						if env.enabled_skin and s and s ~= 'Dont Change' then
-							if s=='Random' then
-								s = v.Name;
-							end;
-							
+						local s = env.toskin[v.Name];
+						if env.enabled_skin and s and s ~= 'Dont Change' then							
 							local icon = v:FindFirstChild'Icon'
 							if icon then
 								icon.Image = UTILS.SKIN_MOD.viewmodels[s].image;
@@ -156,10 +152,14 @@ return {
 
 										local function calc()
 											local ts = UTILS.SKIN_MOD.its[b.Image]
-											local tog = UTILS.SKIN_INFO.skinToOg[ts] or ts
-											local tocur = env.toskin[tog]
-											if env.enabled_skin and tocur and tocur ~= 'Dont Change' then
-												b.Image = UTILS.SKIN_MOD.viewmodels[tocur].image
+											local base = UTILS.SKIN_INFO.skinToOg[ts] or ts
+											local s = env.selskin and env.selskin[base] or env.toskin[base]
+											
+											if env.enabled_skin and s and s ~= 'Dont Change' then
+												if s=='Random' then
+													s = base;
+												end;
+												b.Image = UTILS.SKIN_MOD.viewmodels[s].image
 											end
 										end
 
@@ -184,10 +184,14 @@ return {
 										local b = v.Button.Picture
 										local function calc()
 											local ts = UTILS.SKIN_MOD.its[b.Image]
-											local tog = UTILS.SKIN_INFO.skinToOg[ts] or ts
-											local tocur = env.toskin[tog]
-											if env.enabled_skin and tocur and tocur ~= 'Dont Change' then
-												b.Image = UTILS.SKIN_MOD.viewmodels[tocur].image
+											local base = UTILS.SKIN_INFO.skinToOg[ts] or ts
+											local s = env.selskin and env.selskin[base] or env.toskin[base]
+
+											if env.enabled_skin and s and s ~= 'Dont Change' then
+												if s=='Random' then
+													s = base;
+												end;
+												b.Image = UTILS.SKIN_MOD.viewmodels[s].image
 											end
 										end
 
