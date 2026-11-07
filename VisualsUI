@@ -1,16 +1,16 @@
-local getgenv = getgenv;
+local env = getgenv();
 
 --
 
 local attribute = {};
 do
-	local all = getgenv().all or {};
-	local dis = getgenv().dis or {};
-	getgenv().dis = dis;
-	getgenv().all = all;
+	local all = env.all or {};
+	local dis = env.dis or {};
+	env.dis = dis;
+	env.all = all;
 
 	function attribute:set(x,v,a)
-		local all = getgenv().all;
+		local all = env.all;
 		if not dis[x] then
 			dis[x] = x.Destroying:Once(function()
 				all[x] = nil;
@@ -22,7 +22,7 @@ do
 		all[x][v] = a;
 	end;
 	function attribute:get(x,v)
-		local all = getgenv().all;
+		local all = env.all;
 		return all[x] and all[x][v];
 	end;
 end
@@ -46,7 +46,7 @@ return {
 		local mainUI = plr.PlayerGui.MainGui.MainFrame
 		local fighterInterfaces = mainUI.FighterInterfaces
 
-		local ECON_VARS = getgenv().ECON_VARS
+		local ECON_VARS = env.ECON_VARS
 
 		local is = ECON_VARS.TIMES_EXECUTED > 1
 
@@ -60,15 +60,18 @@ return {
 					local items = ui.BottomRight.Container.Hotbar.Container
 
 					funcs.handleSlot = function(v)
-						local _selected = getgenv().toskin[v.Name]
-						if getgenv().enabled_skin and _selected and _selected ~= 'Dont Change' then
+						local s = env.selskin and env.selskin[v.Name] or env.toskin[v.Name];
+						if env.enabled_skin and s and s ~= 'Dont Change' then
+							if s=='Random' then
+								s = v.Name;
+							end;
+							
 							local icon = v:FindFirstChild'Icon'
 							if icon then
-								icon.ResampleMode = Enum.ResamplerMode[_selected:find('Pixel') and 'Pixelated' or 'Default'] 
-								icon.Image = UTILS.SKIN_MOD.viewmodels[_selected].image
+								icon.Image = UTILS.SKIN_MOD.viewmodels[s].image;
 							end;
-						end
-					end
+						end;
+					end;
 
 					-- //
 
@@ -154,8 +157,8 @@ return {
 										local function calc()
 											local ts = UTILS.SKIN_MOD.its[b.Image]
 											local tog = UTILS.SKIN_INFO.skinToOg[ts] or ts
-											local tocur = getgenv().toskin[tog]
-											if getgenv().enabled_skin and tocur and tocur ~= 'Dont Change' then
+											local tocur = env.toskin[tog]
+											if env.enabled_skin and tocur and tocur ~= 'Dont Change' then
 												b.Image = UTILS.SKIN_MOD.viewmodels[tocur].image
 											end
 										end
@@ -182,8 +185,8 @@ return {
 										local function calc()
 											local ts = UTILS.SKIN_MOD.its[b.Image]
 											local tog = UTILS.SKIN_INFO.skinToOg[ts] or ts
-											local tocur = getgenv().toskin[tog]
-											if getgenv().enabled_skin and tocur and tocur ~= 'Dont Change' then
+											local tocur = env.toskin[tog]
+											if env.enabled_skin and tocur and tocur ~= 'Dont Change' then
 												b.Image = UTILS.SKIN_MOD.viewmodels[tocur].image
 											end
 										end
